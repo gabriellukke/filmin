@@ -1,0 +1,107 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import {
+  addMovieSchema,
+  removeMovieSchema,
+  watchedSchema,
+} from "@/lib/validation";
+import { requireUser } from "@/lib/auth";
+
+type MutationState = {
+  error?: string;
+  success?: string;
+};
+
+export async function addMovieToListAction(
+  _state: MutationState,
+  formData: FormData,
+): Promise<MutationState> {
+  const parsed = addMovieSchema.safeParse({
+    list_id: formData.get("list_id"),
+    tmdb_id: formData.get("tmdb_id"),
+    title: formData.get("title"),
+    original_title: formData.get("original_title") || null,
+    poster_path: formData.get("poster_path") || null,
+    release_date: formData.get("release_date") || null,
+  });
+
+  if (!parsed.success) {
+    return { error: "The selected movie could not be added." };
+  }
+
+  const { supabase, user } = await requireUser();
+  const movie = parsed.data;
+  const { data: movieId, error: movieError } = await supabase.rpc(
+    "upsert_movie",
+    {
+      input_tmdb_id: movie.tmdb_id,
+      input_title: movie.title,
+      input_original_title: movie.original_title ?? null,
+      input_poster_path: movie.poster_path ?? null,
+      input_release_date: movie.release_date ?? null,
+    },
+  );
+
+  if (movieError || !movieId) {
+    return { error: movieError?.message ?? "Could not save this movie." };
+  }
+
+  const { error } = await supabase.from("list_movies").insert({
+    list_id: movie.list_id,
+    movie_id: movieId,
+    added_by: user.id,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { success: "That movie is already on this list." };
+    }
+
+    return { error: error.message };
+  }
+
+  revalidatePath(`/lists/${movie.list_id}`);
+  return { success: "Movie added." };
+}
+
+export async function removeMovieFromListAction(formData: FormData) {
+  const parsed = removeMovieSchema.safeParse({
+    list_id: formData.get("list_id"),
+    list_movie_id: formData.get("list_movie_id"),
+  });
+
+  if (!parsed.success) {
+    return;
+  }
+
+  const { supabase } = await requireUser();
+  await supabase
+    .from("list_movies")
+    .delete()
+    .eq("id", parsed.data.list_movie_id)
+    .eq("list_id", parsed.data.list_id);
+
+  revalidatePath(`/lists/${parsed.data.list_id}`);
+}
+
+export async function toggleWatchedAction(formData: FormData) {
+  const parsed = watchedSchema.safeParse({
+    list_id: formData.get("list_id"),
+    list_movie_id: formData.get("list_movie_id"),
+    watched: formData.get("watched"),
+  });
+
+  if (!parsed.success) {
+    return;
+  }
+
+  const { supabase } = await requireUser();
+  await supabase
+    .from("list_movies")
+    .update({ watched: parsed.data.watched })
+    .eq("id", parsed.data.list_movie_id)
+    .eq("list_id", parsed.data.list_id);
+
+  revalidatePath(`/lists/${parsed.data.list_id}`);
+}
