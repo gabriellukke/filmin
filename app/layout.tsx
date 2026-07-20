@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Filmin",
   description: "Create and share movie lists with friends.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
