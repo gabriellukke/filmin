@@ -33,6 +33,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          email: string | null;
+          display_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email?: string | null;
+          display_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string | null;
+          display_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       list_members: {
         Row: {
           list_id: string;
@@ -120,6 +144,10 @@ export type Database = {
       };
       is_list_owner: {
         Args: { target_list_id: string };
+        Returns: boolean;
+      };
+      shares_list_with_profile: {
+        Args: { target_user_id: string };
         Returns: boolean;
       };
       join_list_by_invite: {
