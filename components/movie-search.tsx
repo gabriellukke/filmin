@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { addMovieToListAction } from "@/app/lists/[listId]/actions";
-import { SubmitButton } from "@/components/submit-button";
 import type { MovieDto } from "@/lib/validation";
 
 type SearchState =
@@ -26,6 +25,24 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [delayMs, value]);
 
   return debouncedValue;
+}
+
+function AddIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
 }
 
 export function MovieSearch({ listId }: { listId: string }) {
@@ -108,11 +125,6 @@ export function MovieSearch({ listId }: { listId: string }) {
       {mutationState.error ? (
         <p className="mt-3 text-sm text-rose-700">{mutationState.error}</p>
       ) : null}
-      {mutationState.success ? (
-        <p className="mt-3 text-sm text-emerald-700">
-          {mutationState.success}
-        </p>
-      ) : null}
 
       <div className="mt-4">
         {visibleSearchState.status === "idle" ? (
@@ -157,14 +169,14 @@ export function MovieSearch({ listId }: { listId: string }) {
                   type="hidden"
                   value={movie.release_date ?? ""}
                 />
-                <div className="grid grid-cols-[3.5rem_1fr] gap-3">
-                  <div className="relative h-20 overflow-hidden rounded-md bg-stone-100">
+                <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
+                  <div className="relative h-[6.75rem] w-[4.5rem] overflow-hidden rounded-md bg-stone-100">
                     {movie.poster_path ? (
                       <Image
                         alt=""
                         className="object-cover"
                         fill
-                        sizes="56px"
+                        sizes="72px"
                         src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
                       />
                     ) : (
@@ -173,23 +185,27 @@ export function MovieSearch({ listId }: { listId: string }) {
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-medium text-stone-950">
-                      {movie.title}
-                    </h3>
-                    <p className="mt-1 text-sm text-stone-600">
-                      {movie.release_date
-                        ? new Date(
-                            `${movie.release_date}T00:00:00`,
-                          ).getFullYear()
-                        : "Release date unknown"}
-                    </p>
-                    <SubmitButton
-                      className="button-secondary mt-3 w-full"
-                      pendingLabel="Adding..."
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-stone-950">
+                        {movie.title}
+                      </h3>
+                      <p className="mt-0.5 text-xs text-stone-600">
+                        {movie.release_date
+                          ? new Date(
+                              `${movie.release_date}T00:00:00`,
+                            ).getFullYear()
+                          : "Release date unknown"}
+                      </p>
+                    </div>
+                    <button
+                      aria-label={`Add ${movie.title}`}
+                      className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50 hover:text-stone-950"
+                      title="Add movie"
+                      type="submit"
                     >
-                      Add
-                    </SubmitButton>
+                      <AddIcon />
+                    </button>
                   </div>
                 </div>
               </form>

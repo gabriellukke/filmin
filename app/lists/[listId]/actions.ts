@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   addMovieSchema,
   removeMovieSchema,
+  reorderMoviesSchema,
   watchedSchema,
 } from "@/lib/validation";
 import { requireUser } from "@/lib/auth";
@@ -47,10 +48,19 @@ export async function addMovieToListAction(
     return { error: movieError?.message ?? "Could not save this movie." };
   }
 
+  const { data: lastMovie } = await supabase
+    .from("list_movies")
+    .select("position")
+    .eq("list_id", movie.list_id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { error } = await supabase.from("list_movies").insert({
     list_id: movie.list_id,
     movie_id: movieId,
     added_by: user.id,
+    position: (lastMovie?.position ?? -1) + 1,
   });
 
   if (error) {
@@ -63,6 +73,33 @@ export async function addMovieToListAction(
 
   revalidatePath(`/lists/${movie.list_id}`);
   return { success: "Movie added." };
+}
+
+export async function reorderMoviesAction(
+  listId: string,
+  orderedIds: string[],
+): Promise<MutationState> {
+  const parsed = reorderMoviesSchema.safeParse({
+    list_id: listId,
+    ordered_ids: orderedIds,
+  });
+
+  if (!parsed.success) {
+    return { error: "Could not save the new movie order." };
+  }
+
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("reorder_list_movies", {
+    input_list_id: parsed.data.list_id,
+    input_list_movie_ids: parsed.data.ordered_ids,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/lists/${parsed.data.list_id}`);
+  return { success: "Movie order saved." };
 }
 
 export async function removeMovieFromListAction(formData: FormData) {

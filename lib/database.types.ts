@@ -115,6 +115,7 @@ export type Database = {
           movie_id: string;
           added_by: string | null;
           watched: boolean;
+          position: number;
           added_at: string;
         };
         Insert: {
@@ -123,6 +124,7 @@ export type Database = {
           movie_id: string;
           added_by?: string | null;
           watched?: boolean;
+          position?: number;
           added_at?: string;
         };
         Update: {
@@ -131,6 +133,7 @@ export type Database = {
           movie_id?: string;
           added_by?: string | null;
           watched?: boolean;
+          position?: number;
           added_at?: string;
         };
         Relationships: [];
@@ -153,6 +156,13 @@ export type Database = {
       join_list_by_invite: {
         Args: { invite: string };
         Returns: string;
+      };
+      reorder_list_movies: {
+        Args: {
+          input_list_id: string;
+          input_list_movie_ids: string[];
+        };
+        Returns: undefined;
       };
       upsert_movie: {
         Args: {

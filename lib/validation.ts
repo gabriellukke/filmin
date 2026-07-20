@@ -49,3 +49,8 @@ export const watchedSchema = z.object({
   list_movie_id: uuidSchema,
   watched: z.enum(["true", "false"]).transform((value) => value === "true"),
 });
+
+export const reorderMoviesSchema = z.object({
+  list_id: uuidSchema,
+  ordered_ids: z.array(uuidSchema).min(1).max(200),
+});

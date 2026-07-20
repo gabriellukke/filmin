@@ -1,35 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  removeMovieFromListAction,
-  toggleWatchedAction,
-} from "@/app/lists/[listId]/actions";
+import { MovieList, type MovieListItem } from "@/components/movie-list";
 import { MovieSearch } from "@/components/movie-search";
 import { requireUser } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
-
-type ListMovie = {
-  id: string;
-  watched: boolean;
-  added_at: string;
-  added_by: string | null;
-  movies: {
-    id: string;
-    tmdb_id: number;
-    title: string;
-    original_title: string | null;
-    poster_path: string | null;
-    release_date: string | null;
-  } | null;
-  profiles: {
-    id: string;
-    email: string | null;
-    display_name: string | null;
-  } | null;
-};
 
 type ListMember = {
   user_id: string;
@@ -48,12 +24,6 @@ function getMemberName(member: ListMember) {
     member.profiles?.email ||
     "Unknown member"
   );
-}
-
-function getProfileName(
-  profile: { email: string | null; display_name: string | null } | null,
-) {
-  return profile?.display_name || profile?.email || "Unknown member";
 }
 
 export default async function ListDetailPage({
@@ -82,11 +52,12 @@ export default async function ListDetailPage({
   const { data: listMovies, error: movieError } = await supabase
     .from("list_movies")
     .select(
-      "id,watched,added_at,added_by,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name)",
+      "id,watched,added_at,added_by,position,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name)",
     )
     .eq("list_id", list.id)
-    .order("added_at", { ascending: false })
-    .returns<ListMovie[]>();
+    .order("position", { ascending: true })
+    .order("added_at", { ascending: true })
+    .returns<MovieListItem[]>();
 
   const { data: members, error: membersError } = await supabase
     .from("list_members")
@@ -174,110 +145,14 @@ export default async function ListDetailPage({
             <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
               {movieError.message}
             </p>
-          ) : listMovies && listMovies.length > 0 ? (
-            <div className="mt-4 grid gap-3">
-              {listMovies.map((item) => {
-                const movie = item.movies;
-
-                if (!movie) {
-                  return null;
-                }
-
-                return (
-                  <article className="panel rounded-lg p-3" key={item.id}>
-                    <div className="grid grid-cols-[4.5rem_1fr] gap-4">
-                      <div className="relative h-28 overflow-hidden rounded-md bg-stone-100">
-                        {movie.poster_path ? (
-                          <Image
-                            alt=""
-                            className="object-cover"
-                            fill
-                            sizes="72px"
-                            src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center px-2 text-center text-xs text-stone-500">
-                            No poster
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <h3 className="font-semibold text-stone-950">
-                              {movie.title}
-                            </h3>
-                            <p className="mt-1 text-sm text-stone-600">
-                              {movie.release_date
-                                ? new Date(
-                                    `${movie.release_date}T00:00:00`,
-                                  ).getFullYear()
-                                : "Release date unknown"}
-                            </p>
-                            <p className="mt-2 text-sm text-stone-500">
-                              Added by {getProfileName(item.profiles)}
-                            </p>
-                          </div>
-                          <span
-                            className={
-                              item.watched
-                                ? "rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"
-                                : "rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-600"
-                            }
-                          >
-                            {item.watched ? "Watched" : "Unwatched"}
-                          </span>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <form action={toggleWatchedAction}>
-                            <input
-                              name="list_id"
-                              type="hidden"
-                              value={list.id}
-                            />
-                            <input
-                              name="list_movie_id"
-                              type="hidden"
-                              value={item.id}
-                            />
-                            <input
-                              name="watched"
-                              type="hidden"
-                              value={item.watched ? "false" : "true"}
-                            />
-                            <button className="button-secondary" type="submit">
-                              Mark {item.watched ? "unwatched" : "watched"}
-                            </button>
-                          </form>
-                          <form action={removeMovieFromListAction}>
-                            <input
-                              name="list_id"
-                              type="hidden"
-                              value={list.id}
-                            />
-                            <input
-                              name="list_movie_id"
-                              type="hidden"
-                              value={item.id}
-                            />
-                            <button className="button-danger" type="submit">
-                              Remove
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
           ) : (
-            <div className="panel mt-4 rounded-lg p-6">
-              <p className="font-medium text-stone-950">No movies yet.</p>
-              <p className="mt-1 text-sm text-stone-600">
-                Search TMDB and add the first title for the group.
-              </p>
-            </div>
+            <MovieList
+              initialItems={listMovies ?? []}
+              key={(listMovies ?? [])
+                .map((item) => `${item.id}:${item.position}`)
+                .join("|")}
+              listId={list.id}
+            />
           )}
         </div>
       </section>
