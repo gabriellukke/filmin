@@ -55,7 +55,7 @@ export async function signInWithMagicLink(
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(
         next,
       )}`,
     },
