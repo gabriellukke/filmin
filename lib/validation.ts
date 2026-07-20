@@ -44,6 +44,11 @@ export const removeMovieSchema = z.object({
   list_movie_id: uuidSchema,
 });
 
+export const removeMovieByTmdbSchema = z.object({
+  list_id: uuidSchema,
+  tmdb_id: z.coerce.number().int().positive(),
+});
+
 export const watchedSchema = z.object({
   list_id: uuidSchema,
   list_movie_id: uuidSchema,

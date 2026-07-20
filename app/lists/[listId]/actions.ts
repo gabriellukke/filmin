@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   addMovieSchema,
+  removeMovieByTmdbSchema,
   removeMovieSchema,
   reorderMoviesSchema,
   watchedSchema,
@@ -10,7 +11,9 @@ import {
 import { requireUser } from "@/lib/auth";
 
 type MutationState = {
+  addedTmdbId?: number;
   error?: string;
+  removedTmdbId?: number;
   success?: string;
 };
 
@@ -65,14 +68,17 @@ export async function addMovieToListAction(
 
   if (error) {
     if (error.code === "23505") {
-      return { success: "That movie is already on this list." };
+      return {
+        addedTmdbId: movie.tmdb_id,
+        success: "That movie is already on this list.",
+      };
     }
 
     return { error: error.message };
   }
 
   revalidatePath(`/lists/${movie.list_id}`);
-  return { success: "Movie added." };
+  return { addedTmdbId: movie.tmdb_id, success: "Movie added." };
 }
 
 export async function reorderMoviesAction(
@@ -120,6 +126,47 @@ export async function removeMovieFromListAction(formData: FormData) {
     .eq("list_id", parsed.data.list_id);
 
   revalidatePath(`/lists/${parsed.data.list_id}`);
+}
+
+export async function removeMovieByTmdbAction(
+  formData: FormData,
+): Promise<MutationState> {
+  const parsed = removeMovieByTmdbSchema.safeParse({
+    list_id: formData.get("list_id"),
+    tmdb_id: formData.get("tmdb_id"),
+  });
+
+  if (!parsed.success) {
+    return { error: "The selected movie could not be removed." };
+  }
+
+  const { supabase } = await requireUser();
+  const { data: movie, error: movieError } = await supabase
+    .from("movies")
+    .select("id")
+    .eq("tmdb_id", parsed.data.tmdb_id)
+    .maybeSingle();
+
+  if (movieError) {
+    return { error: movieError.message };
+  }
+
+  if (!movie) {
+    return { removedTmdbId: parsed.data.tmdb_id };
+  }
+
+  const { error } = await supabase
+    .from("list_movies")
+    .delete()
+    .eq("list_id", parsed.data.list_id)
+    .eq("movie_id", movie.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/lists/${parsed.data.list_id}`);
+  return { removedTmdbId: parsed.data.tmdb_id };
 }
 
 export async function toggleWatchedAction(formData: FormData) {

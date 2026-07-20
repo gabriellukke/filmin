@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MovieList, type MovieListItem } from "@/components/movie-list";
-import { MovieSearch } from "@/components/movie-search";
 import { requireUser } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation";
 
@@ -136,25 +135,21 @@ export default async function ListDetailPage({
         </div>
       </header>
 
-      <section className="grid gap-8 py-8 lg:grid-cols-[24rem_1fr]">
-        <MovieSearch listId={list.id} />
-
-        <div>
-          <h2 className="text-lg font-semibold text-stone-950">Movies</h2>
-          {movieError ? (
-            <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-              {movieError.message}
-            </p>
-          ) : (
-            <MovieList
-              initialItems={listMovies ?? []}
-              key={(listMovies ?? [])
-                .map((item) => `${item.id}:${item.position}:${item.watched}`)
-                .join("|")}
-              listId={list.id}
-            />
-          )}
-        </div>
+      <section className="py-8">
+        <h2 className="text-lg font-semibold text-stone-950">Movies</h2>
+        {movieError ? (
+          <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            {movieError.message}
+          </p>
+        ) : (
+          <MovieList
+            initialItems={listMovies ?? []}
+            key={(listMovies ?? [])
+              .map((item) => `${item.id}:${item.position}:${item.watched}`)
+              .join("|")}
+            listId={list.id}
+          />
+        )}
       </section>
     </main>
   );

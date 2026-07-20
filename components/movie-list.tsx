@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   removeMovieFromListAction,
   reorderMoviesAction,
   toggleWatchedAction,
 } from "@/app/lists/[listId]/actions";
+import { MovieSearchDrawer } from "@/components/movie-search-drawer";
 
 export type MovieListItem = {
   id: string;
@@ -28,6 +29,21 @@ export type MovieListItem = {
     display_name: string | null;
   } | null;
 };
+
+type SortMode = "custom" | "added_at" | "title";
+type FilterMode = "all" | "watched" | "unwatched";
+
+const sortOptions: { label: string; value: SortMode }[] = [
+  { label: "Custom order", value: "custom" },
+  { label: "Recently added", value: "added_at" },
+  { label: "Alphabetical", value: "title" },
+];
+
+const filterOptions: { label: string; value: FilterMode }[] = [
+  { label: "All", value: "all" },
+  { label: "Watched", value: "watched" },
+  { label: "Unwatched", value: "unwatched" },
+];
 
 function getProfileName(
   profile: { email: string | null; display_name: string | null } | null,
@@ -52,6 +68,66 @@ function moveItem(items: MovieListItem[], fromId: string, toId: string) {
 function hasSameOrder(a: MovieListItem[], b: MovieListItem[]) {
   return (
     a.length === b.length && a.every((item, index) => item.id === b[index]?.id)
+  );
+}
+
+function sortMovies(items: MovieListItem[], sortMode: SortMode) {
+  if (sortMode === "custom") {
+    return items;
+  }
+
+  return [...items].sort((a, b) => {
+    if (sortMode === "added_at") {
+      return (
+        new Date(b.added_at).getTime() - new Date(a.added_at).getTime()
+      );
+    }
+
+    return (a.movies?.title ?? "").localeCompare(b.movies?.title ?? "", undefined, {
+      sensitivity: "base",
+    });
+  });
+}
+
+function filterMovies(items: MovieListItem[], filterMode: FilterMode) {
+  if (filterMode === "all") {
+    return items;
+  }
+
+  return items.filter((item) =>
+    filterMode === "watched" ? item.watched : !item.watched,
+  );
+}
+
+function getFilterLabel(filterMode: FilterMode) {
+  return (
+    filterOptions.find((option) => option.value === filterMode)?.label ?? "All"
+  );
+}
+
+function getSortLabel(sortMode: SortMode) {
+  return (
+    sortOptions.find((option) => option.value === sortMode)?.label ??
+    "Custom order"
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
+    </svg>
   );
 }
 
@@ -90,6 +166,28 @@ function CheckIcon() {
   );
 }
 
+function ListIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <path d="M3 6h.01" />
+      <path d="M3 12h.01" />
+      <path d="M3 18h.01" />
+    </svg>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg
@@ -121,10 +219,19 @@ export function MovieList({
   const [items, setItems] = useState(initialItems);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("custom");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const itemsRef = useRef(initialItems);
   const dragStartItemsRef = useRef<MovieListItem[] | null>(null);
   const didDropRef = useRef(false);
+  const visibleItems = useMemo(
+    () => sortMovies(filterMovies(items, filterMode), sortMode),
+    [filterMode, items, sortMode],
+  );
+  const canDrag = sortMode === "custom" && filterMode === "all";
 
   function setMovieItems(nextItems: MovieListItem[]) {
     itemsRef.current = nextItems;
@@ -149,30 +256,140 @@ export function MovieList({
     });
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="panel mt-4 rounded-lg p-6">
-        <p className="font-medium text-stone-950">No movies yet.</p>
-        <p className="mt-1 text-sm text-stone-600">
-          Search TMDB and add the first title for the group.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="mt-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-stone-600">
-          Drag movies to reorder the list.
+          {canDrag
+            ? "Drag movies to reorder the list."
+            : "Switch to all movies and custom order to drag movies."}
         </p>
-        {isPending ? (
-          <p className="text-sm text-stone-500">Saving order...</p>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="relative">
+            <button
+              aria-expanded={filterMenuOpen}
+              aria-haspopup="menu"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
+              onClick={() => {
+                setFilterMenuOpen((open) => !open);
+                setSortMenuOpen(false);
+              }}
+              type="button"
+            >
+              <span>{getFilterLabel(filterMode)}</span>
+              <FilterIcon />
+            </button>
+            {filterMenuOpen ? (
+              <div
+                className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-stone-200 bg-white p-2 shadow-xl"
+                role="menu"
+              >
+                <p className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  Filter by
+                </p>
+                {filterOptions.map((option) => {
+                  const selected = option.value === filterMode;
+
+                  return (
+                    <button
+                      aria-checked={selected}
+                      className={
+                        selected
+                          ? "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-emerald-700 transition hover:bg-stone-50"
+                          : "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-stone-800 transition hover:bg-stone-50"
+                      }
+                      key={option.value}
+                      onClick={() => {
+                        setFilterMode(option.value);
+                        setFilterMenuOpen(false);
+                      }}
+                      role="menuitemradio"
+                      type="button"
+                    >
+                      <span>{option.label}</span>
+                      {selected ? <CheckIcon /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <div className="relative">
+            <button
+              aria-expanded={sortMenuOpen}
+              aria-haspopup="menu"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
+              onClick={() => {
+                setSortMenuOpen((open) => !open);
+                setFilterMenuOpen(false);
+              }}
+              type="button"
+            >
+              <span>{getSortLabel(sortMode)}</span>
+              <ListIcon />
+            </button>
+            {sortMenuOpen ? (
+              <div
+                className="absolute right-0 z-20 mt-2 w-60 rounded-lg border border-stone-200 bg-white p-2 shadow-xl"
+                role="menu"
+              >
+                <p className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  Sort by
+                </p>
+                {sortOptions.map((option) => {
+                  const selected = option.value === sortMode;
+
+                  return (
+                    <button
+                      aria-checked={selected}
+                      className={
+                        selected
+                          ? "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-emerald-700 transition hover:bg-stone-50"
+                          : "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-stone-800 transition hover:bg-stone-50"
+                      }
+                      key={option.value}
+                      onClick={() => {
+                        setSortMode(option.value);
+                        setSortMenuOpen(false);
+                      }}
+                      role="menuitemradio"
+                      type="button"
+                    >
+                      <span>{option.label}</span>
+                      {selected ? <CheckIcon /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <MovieSearchDrawer listId={listId} />
+        </div>
       </div>
+      {isPending ? (
+        <div className="mb-3 flex justify-end">
+          <p className="text-sm text-stone-500">Saving order...</p>
+        </div>
+      ) : null}
       {error ? <p className="mb-3 text-sm text-rose-700">{error}</p> : null}
+      {items.length === 0 ? (
+        <div className="panel rounded-lg p-6">
+          <p className="font-medium text-stone-950">No movies yet.</p>
+          <p className="mt-1 text-sm text-stone-600">
+            Search TMDB and add the first title for the group.
+          </p>
+        </div>
+      ) : null}
+      {items.length > 0 && visibleItems.length === 0 ? (
+        <div className="panel rounded-lg p-6">
+          <p className="font-medium text-stone-950">No movies match.</p>
+          <p className="mt-1 text-sm text-stone-600">
+            Change the filter to see more movies in this list.
+          </p>
+        </div>
+      ) : null}
       <div className="grid gap-3">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const movie = item.movies;
 
           if (!movie) {
@@ -182,13 +399,19 @@ export function MovieList({
           return (
             <article
               className={
-                draggedId === item.id
+                !canDrag
+                  ? "panel rounded-lg p-2"
+                  : draggedId === item.id
                   ? "panel cursor-grabbing rounded-lg p-2 opacity-60"
                   : "panel cursor-grab rounded-lg p-2"
               }
-              draggable
+              draggable={canDrag}
               key={item.id}
               onDragEnd={() => {
+                if (!canDrag) {
+                  return;
+                }
+
                 if (!didDropRef.current && dragStartItemsRef.current) {
                   setMovieItems(dragStartItemsRef.current);
                 }
@@ -198,6 +421,10 @@ export function MovieList({
                 didDropRef.current = false;
               }}
               onDragOver={(event) => {
+                if (!canDrag) {
+                  return;
+                }
+
                 event.preventDefault();
                 const activeDraggedId = draggedId;
 
@@ -216,6 +443,10 @@ export function MovieList({
                 }
               }}
               onDragStart={(event) => {
+                if (!canDrag) {
+                  return;
+                }
+
                 setDraggedId(item.id);
                 dragStartItemsRef.current = itemsRef.current;
                 didDropRef.current = false;
@@ -223,6 +454,10 @@ export function MovieList({
                 event.dataTransfer.setData("text/plain", item.id);
               }}
               onDrop={(event) => {
+                if (!canDrag) {
+                  return;
+                }
+
                 event.preventDefault();
                 const droppedId = event.dataTransfer.getData("text/plain");
 
@@ -244,13 +479,7 @@ export function MovieList({
                 }
               }}
             >
-              <div className="grid grid-cols-[1.5rem_4.5rem_minmax(0,1fr)] gap-3">
-                <div className="flex h-[6.75rem] cursor-grab items-center justify-center text-stone-400 active:cursor-grabbing">
-                  <span aria-hidden="true" className="text-lg leading-none">
-                    ⋮⋮
-                  </span>
-                  <span className="sr-only">Drag to reorder</span>
-                </div>
+              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3">
                 <div className="relative h-[6.75rem] w-[4.5rem] overflow-hidden rounded-md bg-stone-100">
                   {movie.poster_path ? (
                     <Image
