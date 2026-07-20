@@ -305,12 +305,12 @@ export function MovieList({
                             }
                             className={
                               item.watched
-                                ? "inline-flex size-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
-                                : "inline-flex size-9 items-center justify-center rounded-md border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50 hover:text-stone-950"
+                                ? "inline-flex size-9 cursor-pointer items-center justify-center rounded-md bg-emerald-50 text-emerald-700 transition hover:bg-stone-100 hover:text-stone-600"
+                                : "inline-flex size-9 cursor-pointer items-center justify-center rounded-md border border-stone-200 bg-white text-stone-600 transition hover:bg-stone-50 hover:text-stone-950"
                             }
                             title={
                               item.watched
-                                ? "Mark as unwatched"
+                                ? "Undo watched"
                                 : "Mark as watched"
                             }
                             type="submit"
@@ -327,7 +327,7 @@ export function MovieList({
                           />
                           <button
                             aria-label="Remove movie"
-                            className="inline-flex size-9 items-center justify-center rounded-md border border-rose-100 bg-white text-rose-700 transition hover:bg-rose-50"
+                            className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md border border-rose-100 bg-white text-rose-700 transition hover:bg-rose-50"
                             title="Remove movie"
                             type="submit"
                           >
