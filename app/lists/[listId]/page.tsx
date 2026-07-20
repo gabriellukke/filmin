@@ -15,6 +15,7 @@ type ListMovie = {
   id: string;
   watched: boolean;
   added_at: string;
+  added_by: string | null;
   movies: {
     id: string;
     tmdb_id: number;
@@ -22,6 +23,11 @@ type ListMovie = {
     original_title: string | null;
     poster_path: string | null;
     release_date: string | null;
+  } | null;
+  profiles: {
+    id: string;
+    email: string | null;
+    display_name: string | null;
   } | null;
 };
 
@@ -42,6 +48,12 @@ function getMemberName(member: ListMember) {
     member.profiles?.email ||
     "Unknown member"
   );
+}
+
+function getProfileName(
+  profile: { email: string | null; display_name: string | null } | null,
+) {
+  return profile?.display_name || profile?.email || "Unknown member";
 }
 
 export default async function ListDetailPage({
@@ -70,7 +82,7 @@ export default async function ListDetailPage({
   const { data: listMovies, error: movieError } = await supabase
     .from("list_movies")
     .select(
-      "id,watched,added_at,movies(id,tmdb_id,title,original_title,poster_path,release_date)",
+      "id,watched,added_at,added_by,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name)",
     )
     .eq("list_id", list.id)
     .order("added_at", { ascending: false })
@@ -201,6 +213,9 @@ export default async function ListDetailPage({
                                     `${movie.release_date}T00:00:00`,
                                   ).getFullYear()
                                 : "Release date unknown"}
+                            </p>
+                            <p className="mt-2 text-sm text-stone-500">
+                              Added by {getProfileName(item.profiles)}
                             </p>
                           </div>
                           <span

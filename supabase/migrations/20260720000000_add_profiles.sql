@@ -26,6 +26,12 @@ foreign key (user_id)
 references public.profiles(id)
 on delete cascade;
 
+alter table public.list_movies
+add constraint list_movies_added_by_profiles_fkey
+foreign key (added_by)
+references public.profiles(id)
+on delete set null;
+
 create index profiles_email_idx on public.profiles(email);
 
 alter table public.profiles enable row level security;
