@@ -16,6 +16,21 @@ const loginSchema = z.object({
   next: z.string().optional(),
 });
 
+function getMagicLinkErrorMessage(error: unknown) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.trim() &&
+    error.message.trim() !== "{}"
+  ) {
+    return error.message;
+  }
+
+  return "Could not send the magic link. Check your Supabase SMTP settings, Resend API key, and verified sender domain.";
+}
+
 export async function signInWithMagicLink(
   _state: LoginState,
   formData: FormData,
@@ -47,7 +62,7 @@ export async function signInWithMagicLink(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: getMagicLinkErrorMessage(error) };
   }
 
   return { success: "Check your email for a sign-in link." };
