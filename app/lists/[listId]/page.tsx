@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { MovieList, type MovieListItem } from "@/components/movie-list";
 import { requireUser } from "@/lib/auth";
@@ -14,6 +15,17 @@ type ListMember = {
     id: string;
     email: string | null;
     display_name: string | null;
+    avatar_path: string | null;
+    avatar_url?: string | null;
+  } | null;
+};
+
+type ListMovieRow = Omit<MovieListItem, "profiles"> & {
+  profiles: {
+    id: string;
+    email: string | null;
+    display_name: string | null;
+    avatar_path: string | null;
   } | null;
 };
 
@@ -51,23 +63,51 @@ export default async function ListDetailPage({
   const { data: listMovies, error: movieError } = await supabase
     .from("list_movies")
     .select(
-      "id,watched,added_at,added_by,position,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name)",
+      "id,watched,added_at,added_by,position,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name,avatar_path)",
     )
     .eq("list_id", list.id)
     .order("position", { ascending: true })
     .order("added_at", { ascending: true })
-    .returns<MovieListItem[]>();
+    .returns<ListMovieRow[]>();
 
   const { data: members, error: membersError } = await supabase
     .from("list_members")
     .select(
-      "user_id,role,joined_at,profiles!list_members_user_id_profiles_fkey(id,email,display_name)",
+      "user_id,role,joined_at,profiles!list_members_user_id_profiles_fkey(id,email,display_name,avatar_path)",
     )
     .eq("list_id", list.id)
     .order("joined_at", { ascending: true })
     .returns<ListMember[]>();
 
   const inviteUrl = `/join/${list.invite_code}`;
+  const membersWithAvatars =
+    members?.map((member) => ({
+      ...member,
+      profiles: member.profiles
+        ? {
+            ...member.profiles,
+            avatar_url: member.profiles.avatar_path
+              ? supabase.storage
+                  .from("avatars")
+                  .getPublicUrl(member.profiles.avatar_path).data.publicUrl
+              : null,
+          }
+        : null,
+    })) ?? [];
+  const listMoviesWithAvatars =
+    listMovies?.map((item) => ({
+      ...item,
+      profiles: item.profiles
+        ? {
+            ...item.profiles,
+            avatar_url: item.profiles.avatar_path
+              ? supabase.storage
+                  .from("avatars")
+                  .getPublicUrl(item.profiles.avatar_path).data.publicUrl
+              : null,
+          }
+        : null,
+    })) ?? [];
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-8">
@@ -100,14 +140,25 @@ export default async function ListDetailPage({
               </p>
             ) : members && members.length > 0 ? (
               <div className="mt-4 grid gap-3">
-                {members.map((member) => (
+                {membersWithAvatars.map((member) => (
                   <div
                     className="flex items-center justify-between gap-3"
                     key={member.user_id}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-sm font-semibold uppercase text-rose-700">
-                        {getMemberName(member).slice(0, 1)}
+                      <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-sm font-semibold uppercase text-rose-700">
+                        {member.profiles?.avatar_url ? (
+                          <Image
+                            alt=""
+                            className="object-cover"
+                            fill
+                            sizes="36px"
+                            src={member.profiles.avatar_url}
+                            unoptimized
+                          />
+                        ) : (
+                          getMemberName(member).slice(0, 1)
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-stone-950">
@@ -143,7 +194,7 @@ export default async function ListDetailPage({
           </p>
         ) : (
           <MovieList
-            initialItems={listMovies ?? []}
+            initialItems={listMoviesWithAvatars}
             listId={list.id}
           />
         )}

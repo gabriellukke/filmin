@@ -27,6 +27,7 @@ export type MovieListItem = {
     id: string;
     email: string | null;
     display_name: string | null;
+    avatar_url: string | null;
   } | null;
 };
 
@@ -540,9 +541,26 @@ function MovieListRows({
                               ).getFullYear()
                             : "Release date unknown"}
                         </p>
-                        <p className="mt-1 text-xs text-stone-500">
-                          Added by {getProfileName(item.profiles)}
-                        </p>
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-stone-500">
+                          <span>Added by</span>
+                          <span className="relative flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-[0.625rem] font-semibold uppercase text-rose-700">
+                            {item.profiles?.avatar_url ? (
+                              <Image
+                                alt=""
+                                className="object-cover"
+                                fill
+                                sizes="20px"
+                                src={item.profiles.avatar_url}
+                                unoptimized
+                              />
+                            ) : (
+                              getProfileName(item.profiles).slice(0, 1)
+                            )}
+                          </span>
+                          <span className="truncate">
+                            {getProfileName(item.profiles)}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <form action={toggleWatchedAction}>

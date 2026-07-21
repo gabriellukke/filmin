@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { signOut } from "@/app/login/actions";
 import { CreateListForm } from "@/components/create-list-form";
+import { ProfileMenu } from "@/components/profile-menu";
 import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +29,22 @@ export default async function ListsPage() {
     .from("lists")
     .select("id,name,owner_id,created_at")
     .order("created_at", { ascending: false });
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name,email,avatar_path")
+    .eq("id", user.id)
+    .maybeSingle();
+  const email = profile?.email ?? user.email ?? "No email";
+  const displayName =
+    profile?.display_name ??
+    user.user_metadata.name ??
+    user.user_metadata.full_name ??
+    email.split("@")[0] ??
+    "";
+  const avatarUrl = profile?.avatar_path
+    ? supabase.storage.from("avatars").getPublicUrl(profile.avatar_path).data
+        .publicUrl
+    : null;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-8">
@@ -40,18 +56,13 @@ export default async function ListsPage() {
           <h1 className="mt-2 text-3xl font-semibold text-stone-950">
             Movie lists
           </h1>
-          <p className="mt-1 text-sm text-stone-600">{user.email}</p>
+          <p className="mt-1 text-sm text-stone-600">{email}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link className="button-secondary" href="/profile">
-            Profile
-          </Link>
-          <form action={signOut}>
-            <button className="button-secondary" type="submit">
-              Log out
-            </button>
-          </form>
-        </div>
+        <ProfileMenu
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          email={email}
+        />
       </header>
 
       <section className="grid gap-6 py-8 lg:grid-cols-[22rem_1fr]">

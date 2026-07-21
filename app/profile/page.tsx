@@ -8,7 +8,7 @@ export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name,email")
+    .select("display_name,email,avatar_path")
     .eq("id", user.id)
     .maybeSingle();
   const email = profile?.email ?? user.email ?? "No email";
@@ -18,6 +18,10 @@ export default async function ProfilePage() {
     user.user_metadata.full_name ??
     email.split("@")[0] ??
     "";
+  const avatarUrl = profile?.avatar_path
+    ? supabase.storage.from("avatars").getPublicUrl(profile.avatar_path).data
+        .publicUrl
+    : null;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-8">
@@ -39,7 +43,11 @@ export default async function ProfilePage() {
       </header>
 
       <section className="py-8">
-        <ProfileForms displayName={displayName} email={email} />
+        <ProfileForms
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          email={email}
+        />
       </section>
     </main>
   );

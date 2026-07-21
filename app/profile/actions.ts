@@ -18,6 +18,30 @@ const updatePasswordSchema = z.object({
   password: passwordSchema,
 });
 
+const avatarSchema = z
+  .instanceof(File)
+  .refine((file) => file.size > 0, "Choose an image to upload.")
+  .refine(
+    (file) => file.size <= 2 * 1024 * 1024,
+    "Profile picture must be 2MB or smaller.",
+  )
+  .refine(
+    (file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type),
+    "Use a JPEG, PNG, or WebP image.",
+  );
+
+function getAvatarExtension(fileType: string) {
+  if (fileType === "image/png") {
+    return "png";
+  }
+
+  if (fileType === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
+}
+
 export async function updateProfileAction(
   _state: ProfileState,
   formData: FormData,
@@ -79,4 +103,45 @@ export async function updatePasswordAction(
   }
 
   return { success: "Password updated." };
+}
+
+export async function updateAvatarAction(
+  _state: ProfileState,
+  formData: FormData,
+): Promise<ProfileState> {
+  const parsed = avatarSchema.safeParse(formData.get("avatar"));
+
+  if (!parsed.success) {
+    return {
+      error:
+        parsed.error.issues[0]?.message ?? "Profile picture could not be saved.",
+    };
+  }
+
+  const { supabase, user } = await requireUser();
+  const avatarPath = `${user.id}/avatar.${getAvatarExtension(parsed.data.type)}`;
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(avatarPath, parsed.data, {
+      cacheControl: "3600",
+      contentType: parsed.data.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ avatar_path: avatarPath })
+    .eq("id", user.id);
+
+  if (profileError) {
+    return { error: profileError.message };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/lists");
+  return { success: "Profile picture updated." };
 }
