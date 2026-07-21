@@ -23,16 +23,16 @@ export default async function LoginPage({
   const next = getSafeRedirect(params.next);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-12 sm:justify-start sm:pt-24">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">
           Filmin
         </p>
         <h1 className="mt-3 text-3xl font-semibold text-stone-950">
-          Sign in to continue
+          Welcome to Filmin
         </h1>
         <p className="mt-3 text-stone-700">
-          Enter your email and we will send a secure magic link.
+          Sign in or create an account to share movie lists with friends.
         </p>
       </div>
       {params.error ? (

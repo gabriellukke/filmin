@@ -6,6 +6,25 @@ export const listNameSchema = z.object({
   name: z.string().trim().min(1, "List name is required.").max(100),
 });
 
+export const passwordSchema = z
+  .string()
+  .min(
+    8,
+    "Password must have at least 8 characters, one number, one symbol, and one uppercase letter.",
+  )
+  .regex(
+    /[A-Z]/,
+    "Password must have at least 8 characters, one number, one symbol, and one uppercase letter.",
+  )
+  .regex(
+    /\d/,
+    "Password must have at least 8 characters, one number, one symbol, and one uppercase letter.",
+  )
+  .regex(
+    /[^A-Za-z0-9]/,
+    "Password must have at least 8 characters, one number, one symbol, and one uppercase letter.",
+  );
+
 export const inviteCodeSchema = z
   .string()
   .trim()

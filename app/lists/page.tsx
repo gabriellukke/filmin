@@ -42,11 +42,16 @@ export default async function ListsPage() {
           </h1>
           <p className="mt-1 text-sm text-stone-600">{user.email}</p>
         </div>
-        <form action={signOut}>
-          <button className="button-secondary" type="submit">
-            Log out
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link className="button-secondary" href="/profile">
+            Profile
+          </Link>
+          <form action={signOut}>
+            <button className="button-secondary" type="submit">
+              Log out
+            </button>
+          </form>
+        </div>
       </header>
 
       <section className="grid gap-6 py-8 lg:grid-cols-[22rem_1fr]">

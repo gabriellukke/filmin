@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const protectedPrefixes = ["/lists", "/join"];
+const protectedPrefixes = ["/lists", "/join", "/profile"];
 
 export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
@@ -25,5 +25,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/lists/:path*", "/join/:path*"],
+  matcher: ["/login", "/lists/:path*", "/join/:path*", "/profile", "/profile/:path*"],
 };
