@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import { MembersMenu } from "@/components/members-menu";
 import { MovieList, type MovieListItem } from "@/components/movie-list";
 import { requireUser } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation";
@@ -94,6 +94,12 @@ export default async function ListDetailPage({
           }
         : null,
     })) ?? [];
+  const memberMenuItems = membersWithAvatars.map((member) => ({
+    user_id: member.user_id,
+    role: member.role,
+    name: getMemberName(member),
+    avatar_url: member.profiles?.avatar_url ?? null,
+  }));
   const listMoviesWithAvatars =
     listMovies?.map((item) => ({
       ...item,
@@ -115,7 +121,7 @@ export default async function ListDetailPage({
         <Link className="text-sm font-semibold text-rose-700" href="/lists">
           Back to lists
         </Link>
-        <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-3xl font-semibold text-stone-950">
               {list.name}
@@ -127,62 +133,11 @@ export default async function ListDetailPage({
               {inviteUrl}
             </code>
           </div>
-          <div className="panel rounded-lg p-4 lg:w-80">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold text-stone-950">Members</h2>
-              <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-600">
-                {members?.length ?? 0}
-              </span>
-            </div>
-            {membersError ? (
-              <p className="mt-3 text-sm text-rose-700">
-                Could not load list members.
-              </p>
-            ) : members && members.length > 0 ? (
-              <div className="mt-4 grid gap-3">
-                {membersWithAvatars.map((member) => (
-                  <div
-                    className="flex items-center justify-between gap-3"
-                    key={member.user_id}
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-sm font-semibold uppercase text-rose-700">
-                        {member.profiles?.avatar_url ? (
-                          <Image
-                            alt=""
-                            className="object-cover"
-                            fill
-                            sizes="36px"
-                            src={member.profiles.avatar_url}
-                            unoptimized
-                          />
-                        ) : (
-                          getMemberName(member).slice(0, 1)
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-stone-950">
-                          {getMemberName(member)}
-                        </p>
-                        {member.profiles?.email ? (
-                          <p className="truncate text-xs text-stone-500">
-                            {member.profiles.email}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold capitalize text-stone-600">
-                      {member.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-stone-600">
-                Members will appear here after they join.
-              </p>
-            )}
-          </div>
+          {membersError ? (
+            <p className="text-sm text-rose-700">Could not load members.</p>
+          ) : (
+            <MembersMenu members={memberMenuItems} />
+          )}
         </div>
       </header>
 
