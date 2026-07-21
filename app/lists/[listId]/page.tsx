@@ -144,9 +144,6 @@ export default async function ListDetailPage({
         ) : (
           <MovieList
             initialItems={listMovies ?? []}
-            key={(listMovies ?? [])
-              .map((item) => `${item.id}:${item.position}:${item.watched}`)
-              .join("|")}
             listId={list.id}
           />
         )}

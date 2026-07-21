@@ -216,45 +216,14 @@ export function MovieList({
   initialItems: MovieListItem[];
   listId: string;
 }) {
-  const [items, setItems] = useState(initialItems);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const itemsRef = useRef(initialItems);
-  const dragStartItemsRef = useRef<MovieListItem[] | null>(null);
-  const didDropRef = useRef(false);
-  const visibleItems = useMemo(
-    () => sortMovies(filterMovies(items, filterMode), sortMode),
-    [filterMode, items, sortMode],
-  );
   const canDrag = sortMode === "custom" && filterMode === "all";
-
-  function setMovieItems(nextItems: MovieListItem[]) {
-    itemsRef.current = nextItems;
-    setItems(nextItems);
-  }
-
-  function saveOrder(nextItems: MovieListItem[], rollbackItems: MovieListItem[]) {
-    setMovieItems(nextItems);
-    setError(null);
-
-    startTransition(async () => {
-      const result = await reorderMoviesAction(
-        listId,
-        nextItems.map((item) => item.id),
-      );
-
-      if (result.error) {
-        setMovieItems(rollbackItems);
-        setError(result.error);
-        return;
-      }
-    });
-  }
+  const itemsKey = initialItems
+    .map((item) => `${item.id}:${item.position}:${item.watched}`)
+    .join("|");
 
   return (
     <div className="mt-4">
@@ -366,6 +335,68 @@ export function MovieList({
           <MovieSearchDrawer listId={listId} />
         </div>
       </div>
+      <MovieListRows
+        canDrag={canDrag}
+        filterMode={filterMode}
+        initialItems={initialItems}
+        key={itemsKey}
+        listId={listId}
+        sortMode={sortMode}
+      />
+    </div>
+  );
+}
+
+function MovieListRows({
+  canDrag,
+  filterMode,
+  initialItems,
+  listId,
+  sortMode,
+}: {
+  canDrag: boolean;
+  filterMode: FilterMode;
+  initialItems: MovieListItem[];
+  listId: string;
+  sortMode: SortMode;
+}) {
+  const [items, setItems] = useState(initialItems);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const itemsRef = useRef(initialItems);
+  const dragStartItemsRef = useRef<MovieListItem[] | null>(null);
+  const didDropRef = useRef(false);
+  const visibleItems = useMemo(
+    () => sortMovies(filterMovies(items, filterMode), sortMode),
+    [filterMode, items, sortMode],
+  );
+
+  function setMovieItems(nextItems: MovieListItem[]) {
+    itemsRef.current = nextItems;
+    setItems(nextItems);
+  }
+
+  function saveOrder(nextItems: MovieListItem[], rollbackItems: MovieListItem[]) {
+    setMovieItems(nextItems);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await reorderMoviesAction(
+        listId,
+        nextItems.map((item) => item.id),
+      );
+
+      if (result.error) {
+        setMovieItems(rollbackItems);
+        setError(result.error);
+        return;
+      }
+    });
+  }
+
+  return (
+    <>
       {isPending ? (
         <div className="mb-3 flex justify-end">
           <p className="text-sm text-stone-500">Saving order...</p>
@@ -579,6 +610,6 @@ export function MovieList({
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
