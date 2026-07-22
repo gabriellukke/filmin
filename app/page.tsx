@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,9 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-950">
+      <div className="absolute right-6 top-6">
+        <ThemeToggle />
+      </div>
       <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-16">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">

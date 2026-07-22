@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getSafeRedirect } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +25,9 @@ export default async function LoginPage({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-12 sm:justify-start sm:pt-24">
+      <div className="mb-8 flex justify-end">
+        <ThemeToggle />
+      </div>
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">
           Filmin
