@@ -22,8 +22,8 @@ const avatarSchema = z
   .instanceof(File)
   .refine((file) => file.size > 0, "Choose an image to upload.")
   .refine(
-    (file) => file.size <= 2 * 1024 * 1024,
-    "Profile picture must be 2MB or smaller.",
+    (file) => file.size <= 12 * 1024 * 1024,
+    "Profile picture must be 12MB or smaller.",
   )
   .refine(
     (file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type),

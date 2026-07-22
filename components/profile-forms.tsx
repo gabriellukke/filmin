@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   updateAvatarAction,
   updatePasswordAction,
@@ -24,20 +24,40 @@ export function ProfileForms({
     updatePasswordAction,
     {},
   );
+  const [selectedAvatarName, setSelectedAvatarName] = useState<string | null>(
+    null,
+  );
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(
+    null,
+  );
+  const currentAvatarUrl = selectedAvatarUrl ?? avatarUrl;
+
+  useEffect(() => {
+    return () => {
+      if (selectedAvatarUrl) {
+        URL.revokeObjectURL(selectedAvatarUrl);
+      }
+    };
+  }, [selectedAvatarUrl]);
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <form action={avatarAction} className="panel rounded-lg p-5 lg:col-span-2">
-        <h2 className="font-semibold text-stone-950">Profile picture</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="font-semibold text-stone-950">Profile picture</h2>
+          <p className="text-sm text-stone-600">
+            This appears in member lists and beside movies you add.
+          </p>
+        </div>
         <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-3xl font-semibold uppercase text-rose-700">
-            {avatarUrl ? (
+          <div className="relative flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-4xl font-semibold uppercase text-rose-700 ring-1 ring-stone-200">
+            {currentAvatarUrl ? (
               <Image
                 alt=""
                 className="object-cover"
                 fill
-                sizes="96px"
-                src={avatarUrl}
+                sizes="112px"
+                src={currentAvatarUrl}
                 unoptimized
               />
             ) : (
@@ -45,22 +65,36 @@ export function ProfileForms({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <label
-              className="block text-sm font-medium text-stone-800"
-              htmlFor="avatar"
-            >
-              Upload image
-            </label>
             <input
               accept="image/jpeg,image/png,image/webp"
-              className="mt-2 block w-full text-sm text-stone-700 file:mr-4 file:min-h-10 file:cursor-pointer file:rounded-md file:border file:border-stone-200 file:bg-white file:px-3 file:text-sm file:font-semibold file:text-stone-800 file:transition hover:file:bg-stone-50"
+              className="sr-only"
               id="avatar"
               name="avatar"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+
+                setSelectedAvatarName(file?.name ?? null);
+                setSelectedAvatarUrl((previousUrl) => {
+                  if (previousUrl) {
+                    URL.revokeObjectURL(previousUrl);
+                  }
+
+                  return file ? URL.createObjectURL(file) : null;
+                });
+              }}
               required
               type="file"
             />
-            <p className="mt-2 text-xs text-stone-500">
-              JPEG, PNG, or WebP. Maximum 2MB.
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="button-secondary cursor-pointer" htmlFor="avatar">
+                Choose image
+              </label>
+              <span className="min-w-0 truncate text-sm text-stone-600">
+                {selectedAvatarName ?? "No file selected"}
+              </span>
+            </div>
+            <p className="mt-3 max-w-md text-xs leading-5 text-stone-500">
+              JPEG, PNG, or WebP. Maximum 12MB. Square images work best.
             </p>
             {avatarState.error ? (
               <p className="mt-3 text-sm text-rose-700">
