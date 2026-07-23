@@ -44,6 +44,14 @@ const releaseDateSchema = z
   .or(z.literal(""))
   .transform((value) => (value === "" ? null : value));
 
+const watchedDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .nullable()
+  .or(z.literal(""))
+  .transform((value) => (value === "" ? null : value));
+
 export const movieDtoSchema = z.object({
   tmdb_id: z.coerce.number().int().positive(),
   title: z.string().trim().min(1).max(300),
@@ -72,6 +80,7 @@ export const watchedSchema = z.object({
   list_id: uuidSchema,
   list_movie_id: uuidSchema,
   watched: z.enum(["true", "false"]).transform((value) => value === "true"),
+  watched_at: watchedDateSchema.optional(),
 });
 
 export const reorderMoviesSchema = z.object({

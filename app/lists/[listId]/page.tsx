@@ -63,7 +63,7 @@ export default async function ListDetailPage({
   const { data: listMovies, error: movieError } = await supabase
     .from("list_movies")
     .select(
-      "id,watched,added_at,added_by,position,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name,avatar_path)",
+      "id,watched,watched_at,added_at,added_by,position,movies(id,tmdb_id,title,original_title,poster_path,release_date),profiles!list_movies_added_by_profiles_fkey(id,email,display_name,avatar_path)",
     )
     .eq("list_id", list.id)
     .order("position", { ascending: true })

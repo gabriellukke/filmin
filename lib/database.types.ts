@@ -118,6 +118,7 @@ export type Database = {
           movie_id: string;
           added_by: string | null;
           watched: boolean;
+          watched_at: string | null;
           position: number;
           added_at: string;
         };
@@ -127,6 +128,7 @@ export type Database = {
           movie_id: string;
           added_by?: string | null;
           watched?: boolean;
+          watched_at?: string | null;
           position?: number;
           added_at?: string;
         };
@@ -136,6 +138,7 @@ export type Database = {
           movie_id?: string;
           added_by?: string | null;
           watched?: boolean;
+          watched_at?: string | null;
           position?: number;
           added_at?: string;
         };

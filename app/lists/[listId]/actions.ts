@@ -174,6 +174,7 @@ export async function toggleWatchedAction(formData: FormData) {
     list_id: formData.get("list_id"),
     list_movie_id: formData.get("list_movie_id"),
     watched: formData.get("watched"),
+    watched_at: formData.get("watched_at") ?? "",
   });
 
   if (!parsed.success) {
@@ -181,9 +182,15 @@ export async function toggleWatchedAction(formData: FormData) {
   }
 
   const { supabase } = await requireUser();
+  const today = new Date().toISOString().slice(0, 10);
   await supabase
     .from("list_movies")
-    .update({ watched: parsed.data.watched })
+    .update({
+      watched: parsed.data.watched,
+      watched_at: parsed.data.watched
+        ? (parsed.data.watched_at ?? today)
+        : null,
+    })
     .eq("id", parsed.data.list_movie_id)
     .eq("list_id", parsed.data.list_id);
 

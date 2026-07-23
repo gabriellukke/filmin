@@ -12,6 +12,7 @@ import { MovieSearchDrawer } from "@/components/movie-search-drawer";
 export type MovieListItem = {
   id: string;
   watched: boolean;
+  watched_at: string | null;
   added_at: string;
   added_by: string | null;
   position: number;
@@ -50,6 +51,22 @@ function getProfileName(
   profile: { email: string | null; display_name: string | null } | null,
 ) {
   return profile?.display_name || profile?.email || "Unknown member";
+}
+
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatWatchedDate(date: string | null) {
+  if (!date) {
+    return "Set date";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00`));
 }
 
 function moveItem(items: MovieListItem[], fromId: string, toId: string) {
@@ -210,6 +227,74 @@ function TrashIcon() {
   );
 }
 
+function WatchedDateEditor({
+  item,
+  listId,
+}: {
+  item: MovieListItem;
+  listId: string;
+}) {
+  const initialDate = item.watched_at ?? getTodayDate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+
+  return (
+    <div className="relative">
+      <button
+        aria-expanded={isOpen}
+        className="inline-flex h-8 cursor-pointer items-center rounded-md border border-stone-200 bg-white px-2 text-xs font-semibold text-stone-700 transition hover:bg-stone-50 hover:text-stone-950 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200 dark:hover:bg-stone-900 dark:hover:text-white"
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        {formatWatchedDate(item.watched_at)}
+      </button>
+
+      {isOpen ? (
+        <form
+          action={async (formData) => {
+            setIsOpen(false);
+            await toggleWatchedAction(formData);
+          }}
+          className="absolute left-0 z-20 mt-2 w-56 rounded-lg border border-stone-200 bg-white p-3 shadow-lg dark:border-stone-700 dark:bg-stone-950"
+        >
+          <input name="list_id" type="hidden" value={listId} />
+          <input name="list_movie_id" type="hidden" value={item.id} />
+          <input name="watched" type="hidden" value="true" />
+          <label
+            className="mb-2 block text-xs font-semibold text-stone-600 dark:text-stone-300"
+            htmlFor={`watched-at-${item.id}`}
+          >
+            Watched date
+          </label>
+          <input
+            className="h-9 w-full rounded-md border border-stone-200 bg-white px-2 text-sm font-medium text-stone-700 outline-none transition focus:border-rose-700 focus:shadow-[0_0_0_3px_rgb(190_18_60_/_0.14)] dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200"
+            id={`watched-at-${item.id}`}
+            name="watched_at"
+            onChange={(event) => setSelectedDate(event.target.value)}
+            type="date"
+            value={selectedDate}
+          />
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button
+              className="inline-flex h-8 cursor-pointer items-center rounded-md px-2 text-xs font-semibold text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-white"
+              onClick={() => setSelectedDate(initialDate)}
+              type="button"
+            >
+              Reset
+            </button>
+            <button
+              className="inline-flex h-8 cursor-pointer items-center rounded-md bg-rose-700 px-3 text-xs font-semibold text-white transition hover:bg-rose-800"
+              type="submit"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 export function MovieList({
   initialItems,
   listId,
@@ -223,7 +308,10 @@ export function MovieList({
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const canDrag = sortMode === "custom" && filterMode === "all";
   const itemsKey = initialItems
-    .map((item) => `${item.id}:${item.position}:${item.watched}`)
+    .map(
+      (item) =>
+        `${item.id}:${item.position}:${item.watched}:${item.watched_at ?? ""}`,
+    )
     .join("|");
 
   return (
@@ -575,6 +663,11 @@ function MovieListRows({
                             type="hidden"
                             value={item.watched ? "false" : "true"}
                           />
+                          <input
+                            name="watched_at"
+                            type="hidden"
+                            value={item.watched ? "" : getTodayDate()}
+                          />
                           <button
                             aria-label={
                               item.watched
@@ -614,12 +707,15 @@ function MovieListRows({
                         </form>
                       </div>
                     </div>
-                    <div className="text-xs font-semibold">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
                       {item.watched ? (
                         <span className="text-emerald-700">Watched</span>
                       ) : (
                         <span className="text-stone-500">Unwatched</span>
                       )}
+                      {item.watched ? (
+                        <WatchedDateEditor item={item} listId={listId} />
+                      ) : null}
                     </div>
                   </div>
                 </div>
